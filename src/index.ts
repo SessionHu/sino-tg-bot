@@ -11,7 +11,7 @@ dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN!);
 
-const dbhelper = new DBHelper('/data/data/com.termux/files/home/srcode/sino-tg-bot/db.jsonl');
+const dbhelper = new DBHelper('./db.jsonl');
 
 // 处理 /start 命令
 bot.start((ctx) => {
