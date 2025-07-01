@@ -55,12 +55,12 @@ bot.command('img', async (ctx) => {
   }
 });
 
-bot.command('shell', (ctx) => {
+bot.command('shell', async (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
   // handle command args
   try {
-    shell.fromContext(ctx);
+    await shell.fromContext(ctx);
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
     logger.error(e);
