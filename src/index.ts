@@ -58,6 +58,7 @@ bot.command('img', async (ctx) => {
 bot.command('shell', async (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
+  ctx.sendChatAction('typing').catch(logger.warn);
   // handle command args
   try {
     await shell.fromContext(ctx);
