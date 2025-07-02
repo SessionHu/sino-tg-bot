@@ -10,6 +10,7 @@ import * as shell from './shell';
 dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN!);
+delete process.env.BOT_TOKEN;
 
 const dbhelper = new DBHelper('./db.jsonl');
 
