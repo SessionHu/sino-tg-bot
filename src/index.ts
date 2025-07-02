@@ -121,7 +121,7 @@ bot.launch(() => {
 
 // 优雅关闭
 const onexit = async (signal: NodeJS.Signals) => {
-  logger.warn('Receiced Signal:', signal);
+  logger.warn('Received Signal:', signal);
   dbhelper.close();
   bot.stop(signal);
 }
