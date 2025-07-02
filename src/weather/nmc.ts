@@ -373,25 +373,28 @@ function getTimeEmojiFromTime(dt: NMCDateTime) {
 }
 
 export async function fromKeyword(keyword: string) {
-  if (!keyword) return '查询城市名称不能少于 1 个字符!';
+  if (!keyword) return { caption: '查询城市名称不能少于 1 个字符!'};
   // search station id
   const atcplt = (await autocomplete(keyword));
   if (!atcplt.data) throw new Error(atcplt.msg);
   const station = atcplt.data[atcplt.data.findIndex(v => {
     if (v.includes(keyword)) return true;
   }) || 0];
-  if (!station) return `未找到城市: ${keyword}!`;
+  if (!station) return { caption: `未找到城市: ${keyword}!` };
   const stationid = station.split('|')[0];
   // get weather
   const w = (await weather(stationid)).data;
-  if (!w) return `查询城市 ${keyword} 失败!`;
+  if (!w) return { caption: `查询城市 ${keyword} 失败!` };
   const res =
     `城市🏙: ${w.real.station.province} ${w.real.station.city}\n` +
     `天气${getWeatherEmojiFromInfo(w.real.weather.info)}: ${w.real.weather.info}\n` +
     `气温🌡: ${w.real.weather.temperature}°C\n` +
-    `风力💨: ${w.real.wind.direct} (${w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
+    `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
     `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n` +
     `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n` +
     `来源🌐: <a href="https://www.nmc.cn${w.real.station.url}">中央气象台</a>`;
-  return res;
+  return {
+    caption: res,
+    image: IMAGE_BASE + w.radar.image
+  };
 }

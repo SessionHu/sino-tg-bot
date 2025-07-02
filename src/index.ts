@@ -7,6 +7,7 @@ import DBHelper from './dbhelper';
 import * as logger from './logger';
 import * as shell from './shell';
 import * as weatherNMC from './weather/nmc';
+import * as escape from './escape';
 
 dotenv.config();
 
@@ -75,7 +76,16 @@ bot.command('weather', async (ctx) => {
   logger.logMessage(ctx);
   ctx.sendChatAction('typing').catch(logger.warn);
   try {
-    await ctx.replyWithHTML(await weatherNMC.fromKeyword(ctx.text.split(/\s+/).splice(1).join(' ')) ?? '');
+    const w = await weatherNMC.fromKeyword(ctx.text.split(/\s+/).splice(1).join(' '));
+    if (w.image) {
+      ctx.sendChatAction('upload_photo').catch(logger.warn);
+      await ctx.replyWithPhoto({
+        url: w.image
+      }, {
+        caption: w.caption,
+        parse_mode: 'HTML'
+      });
+    } else ctx.replyWithHTML(w.caption);
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
     logger.error(e);
@@ -87,7 +97,7 @@ bot.on(message('text'), (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
   if (ctx.chat.type === 'private')
-    ctx.replyWithHTML(`你说了: "<code>${ctx.message.text.replace(/\</g, '&lt;')}</code>"`).catch(logger.error);
+    ctx.replyWithHTML(`你说了: "<code>${escape.escapeHtmlText(ctx.message.text)}</code>"`).catch(logger.error);
 });
 
 // 处理贴纸
