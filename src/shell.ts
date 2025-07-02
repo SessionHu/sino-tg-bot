@@ -15,15 +15,23 @@ async function exec(command: string) {
 
 async function execNoShell(command: string, args?: string[]) {
   logger.info('[shell] :', [command, ...(args ? args : [])]);
-  const chunks = new Array<string>;
-  const cp = childProcess.spawn(command, args);
+  const chunks = new Array<Buffer>;
+  const cp = childProcess.spawn(command, args, {
+    env: {
+      PAGER: 'cat',
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      SHELL: process.argv[0],
+      LD_PRELOAD: process.env.LD_PRELOAD
+    }
+  });
   const readChunk = (chunk: any) => {
-    if (typeof chunk === 'string') chunks.push(chunk);
+    if (chunk instanceof Buffer) chunks.push(chunk);
   };
-  cp.stdout.setEncoding('utf8').on('data', readChunk);
-  cp.stderr.setEncoding('utf8').on('data', readChunk);
+  cp.stdout.on('data', readChunk);
+  cp.stderr.on('data', readChunk);
   return new Promise<string>((resolve, reject) => {
-    cp.on('close', () => resolve(chunks.join('')));
+    cp.on('close', () => resolve(Buffer.concat(chunks).toString('utf8')));
     cp.on('error', reject);
   });
 }
@@ -35,7 +43,7 @@ async function execNoShellPlain(command: string, args?: string[]) {
 export async function fromContext(ctx: Context<Update.MessageUpdate<Message.TextMessage>>) {
   const text = ctx.text.split(/\s+/).slice(1);
   if (!text[0]) {
-    ctx.reply('你不給咱命令运行个啥嘛! 咱又不能給你交互 Shell 喵...');
+    ctx.reply('你不給咱命令运行个啥嘛! 咱这命令就已经是 Shell 了喵...');
   } else if (text[0] === 'neofetch' 
     || text[0] === 'fortune'
     || text[0] === 'uptime'
