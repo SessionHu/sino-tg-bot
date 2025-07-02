@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import DBHelper from './dbhelper';
 import * as logger from './logger';
 import * as shell from './shell';
+import * as weatherNMC from './weather/nmc';
 
 dotenv.config();
 
@@ -63,6 +64,18 @@ bot.command('shell', async (ctx) => {
   // handle command args
   try {
     await shell.fromContext(ctx);
+  } catch (e) {
+    ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
+    logger.error(e);
+  }
+});
+
+bot.command('weather', async (ctx) => {
+  dbhelper.write(JSON.stringify(ctx.message));
+  logger.logMessage(ctx);
+  ctx.sendChatAction('typing').catch(logger.warn);
+  try {
+    await ctx.replyWithHTML(await weatherNMC.fromKeyword(ctx.text.split(/\s+/).splice(1).join(' ')) ?? '');
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
     logger.error(e);
