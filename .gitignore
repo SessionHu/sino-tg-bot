@@ -3,3 +3,4 @@ dist/
 .env
 db.jsonl
 db.jsonl~
+*.swp

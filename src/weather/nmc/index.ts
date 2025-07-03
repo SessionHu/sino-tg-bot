@@ -1,4 +1,4 @@
-import * as logger from '../logger';
+import * as logger from '../../logger';
 
 type StationId = string;
 type NMCDateTime = `${string}-${string}-${string} ${string}:${string}`;
@@ -306,6 +306,7 @@ const HEADERS = {
 
 export async function position(stationid?: StationId) : Promise<Station> {
   const url = NMC_API_URLS.position + (stationid ? `?stationid=${stationid}&` : '?') + '_=' + Date.now();
+  logger.info('[weather] [NMCl', url);
   const resp = await fetch(url, {
     headers: {
       ...HEADERS,
@@ -321,6 +322,7 @@ export async function weather(stationid: StationId) : Promise<{
   data?: WeatherData
 }> {
   const url = NMC_API_URLS.weather + (stationid ? `?stationid=${stationid}&` : '?') + '_=' + Date.now();
+  logger.info('[weather] [NMCl', url);
   const resp = await fetch(url, {
     headers: {
       ...HEADERS,
@@ -341,6 +343,7 @@ export async function autocomplete(q: string, limit = 10): Promise<{
     ['timestamp', Date.now().toString()],
     ['_', Date.now().toString()]
   ]).toString();
+  logger.info('[weather] [NMCl', url);
   const resp = await fetch(url, {
     headers: HEADERS
   });
