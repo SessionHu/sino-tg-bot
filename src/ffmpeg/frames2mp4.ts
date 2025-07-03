@@ -18,7 +18,7 @@ export async function fromURLs(frames: Array<{
     await execNoShell('wget', [
       e.url,
       '--random-wait',
-      '--timeout=2',
+      '--timeout=4',
       '-U', HEADERS['User-Agent'],
       '-O', filepath
     ]);
@@ -43,21 +43,28 @@ export async function fromURLs(frames: Array<{
 
   // 3. 构建滤镜链
   const concatInputs = frames.map((_, i) => `[${i}]`).join('');
-  const filterComplex = `${concatInputs}concat=n=${frames.length}:v=1:a=0`;
+  const filterComplex =
+    // concat images
+    `${concatInputs}concat=n=${frames.length}:v=1:a=0,` +
+    // scale to can be divided to 2
+    'scale=w=trunc(iw/2)*2:h=trunc(ih/2)*2:flags=lanczos';
 
   const mp4path = join(tmpdir(), Date.now().toString(16) + '.mp4');
   ffmpegArgs.push(
     '-filter_complex', filterComplex,
     '-c:v', 'libx264',
     '-preset', 'fast',
+    '-pix_fmt', 'yuv420p', // 兼容性最好的像素格式
+    '-movflags', '+faststart', // 优化网络流式播放
     '-f', 'mp4',
     mp4path
   );
 
   // 4. 执行 FFmpeg
-  await execNoShell('ffmpeg', ffmpegArgs);
+  const por = await execNoShell('ffmpeg', ffmpegArgs);
   for await (const f of frameFiles) rm(f.url).catch(logger.warn);
   const mp4buf = await readFile(mp4path);
   rm(mp4path).catch(logger.warn);
+  if (mp4buf.length <= 8) throw new Error(por);
   return mp4buf;
 }
