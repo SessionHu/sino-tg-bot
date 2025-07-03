@@ -8,14 +8,19 @@ import type { Context } from 'telegraf';
 import type { Message, Update } from 'telegraf/types';
 
 const promisedExec = promisify(childProcess.exec);
-async function exec(command: string) {
+export async function exec(command: string) {
   logger.info('[shell] $', command);
   return promisedExec(command);;
 }
 
-async function execNoShell(command: string, args?: string[]) {
-  logger.info('[shell] :', [command, ...(args ? args : [])]);
+export async function execNoShell(command: string, args?: string[], encoding?: BufferEncoding, aloneStderr?: false): Promise<string>;
+export async function execNoShell(command: string, args: string[], encoding: null, aloneStderr?: false): Promise<Buffer>;
+export async function execNoShell(command: string, args: string[], encoding: BufferEncoding, aloneStderr: true): Promise<{stdout: string, stderr: string}>;
+export async function execNoShell(command: string, args: string[], encoding: null, aloneStderr: true): Promise<{stdout: Buffer, stderr: Buffer}>;
+export async function execNoShell(command: string, args = new Array<string>, encoding: BufferEncoding | null = 'utf8', aloneStderr = false) {
+  logger.info('[shell] :', [command, ...args]);
   const chunks = new Array<Buffer>;
+  const stderc = aloneStderr ? new Array<Buffer> : null;
   const cp = childProcess.spawn(command, args, {
     env: {
       PAGER: 'cat',
@@ -25,13 +30,24 @@ async function execNoShell(command: string, args?: string[]) {
       LD_PRELOAD: process.env.LD_PRELOAD
     }
   });
-  const readChunk = (chunk: any) => {
+  cp.stdout.on('data', (chunk) => {
     if (chunk instanceof Buffer) chunks.push(chunk);
-  };
-  cp.stdout.on('data', readChunk);
-  cp.stderr.on('data', readChunk);
-  return new Promise<string>((resolve, reject) => {
-    cp.on('close', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  });
+  cp.stderr.on('data', (chunk) => {
+    if (chunk instanceof Buffer) (stderc ? stderc : chunks).push(chunk);
+  });
+  return new Promise<string | Buffer | {
+    stdout: Buffer | string,
+    stderr: Buffer | string
+  }>((resolve, reject) => {
+    cp.on('close', () => {
+      const bfo = encoding ? Buffer.concat(chunks).toString(encoding) : Buffer.concat(chunks);
+      const bfe = stderc ? (encoding ? Buffer.concat(stderc).toString(encoding) : Buffer.concat(stderc)) : null;
+      resolve(bfe ? {
+        stdout: bfo,
+        stderr: bfe
+      } : bfo)
+    });
     cp.on('error', reject);
   });
 }
