@@ -421,9 +421,7 @@ async function rader(wr: WeatherRadar): Promise<InputFile> {
   try {
     if (urls.length) 
       return {
-        source: await frames2mp4.fromURLs(urls.map(e => {
-          return { url: e, duration: .2 };
-        }))
+        source: await frames2mp4.fromURLs(urls)
       };
   } catch (e) {
     logger.warn(e);
