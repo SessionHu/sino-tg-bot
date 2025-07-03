@@ -1,4 +1,8 @@
 import * as logger from '../../logger';
+import * as frames2mp4 from '../../ffmpeg/frames2mp4';
+import { raderURLs } from './dom';
+
+import type { InputFile } from 'telegraf/types';
 
 type StationId = string;
 type NMCDateTime = `${string}-${string}-${string} ${string}:${string}`;
@@ -10,6 +14,7 @@ interface Station {
   url: string
 }
 
+export const NMC_BASE = 'https://www.nmc.cn';
 export const IMAGE_BASE = 'https://image.nmc.cn';
 
 /**
@@ -260,14 +265,7 @@ interface WeatherData {
       precipitation: number
     }[]
   },
-  radar: {
-    /**
-     * 与 IMAGE_BASE 组合使用
-     */
-    image: string,
-    title: string,
-    url: string
-  },
+  radar: WeatherRadar,
   predict: {
     publish_time: NMCDateTime,
     station: Station,
@@ -279,6 +277,15 @@ interface WeatherData {
       night: WeatherPredictWeatherWind
     }[]
   }
+}
+
+interface WeatherRadar {
+    /**
+     * 与 IMAGE_BASE 组合使用
+     */
+    image: string,
+    title: string,
+    url: string
 }
 
 interface WeatherPredictWeatherWind {
@@ -299,7 +306,7 @@ const NMC_API_URLS = {
   autocomplete: 'https://www.nmc.cn/essearch/api/autocomplete'
 };
 
-const HEADERS = {
+export const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
   'Referer': 'https://www.nmc.cn/'
 };
@@ -375,7 +382,10 @@ function getTimeEmojiFromTime(dt: NMCDateTime) {
     return '⏱️';
 }
 
-export async function fromKeyword(keyword: string) {
+export async function fromKeyword(keyword: string): Promise<{
+  caption: string,
+  image?: InputFile
+}> {
   if (!keyword) return { caption: '查询城市名称不能少于 1 个字符!'};
   // search station id
   const atcplt = (await autocomplete(keyword));
@@ -388,16 +398,37 @@ export async function fromKeyword(keyword: string) {
   // get weather
   const w = (await weather(stationid)).data;
   if (!w) return { caption: `查询城市 ${keyword} 失败!` };
-  const res =
+  // caption
+  const caption =
     `城市🏙: ${w.real.station.province} ${w.real.station.city}\n` +
     `天气${getWeatherEmojiFromInfo(w.real.weather.info)}: ${w.real.weather.info}\n` +
     `气温🌡: ${w.real.weather.temperature}°C\n` +
     `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
     `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n` +
     `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n` +
-    `来源🌐: <a href="https://www.nmc.cn${w.real.station.url}">中央气象台</a>`;
+    `来源🌐: <a href="${NMC_BASE}${w.real.station.url}">中央气象台</a>`;
+  // image
+  const image = await rader(w.radar);
+  // return
   return {
-    caption: res,
-    image: IMAGE_BASE + w.radar.image
+    caption,
+    image
+  };
+}
+
+async function rader(wr: WeatherRadar): Promise<InputFile> {
+  const urls = await raderURLs(NMC_BASE + wr.url);
+  try {
+    if (urls.length) 
+      return {
+        source: await frames2mp4.fromURLs(urls.map(e => {
+          return { url: e, duration: .2 };
+        }))
+      };
+  } catch (e) {
+    logger.warn(e);
+  }
+  return {
+    url: IMAGE_BASE + wr.image
   };
 }

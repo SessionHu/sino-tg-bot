@@ -79,9 +79,7 @@ bot.command('weather', async (ctx) => {
     const w = await weatherNMC.fromKeyword(ctx.text.split(/\s+/).splice(1).join(' '));
     if (w.image) {
       ctx.sendChatAction('upload_photo').catch(logger.warn);
-      await ctx.replyWithPhoto({
-        url: w.image
-      }, {
+      await ctx['source' in w.image ? 'replyWithAnimation' : 'replyWithPhoto'](w.image, {
         caption: w.caption,
         parse_mode: 'HTML'
       });
