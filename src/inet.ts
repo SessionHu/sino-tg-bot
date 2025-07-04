@@ -21,6 +21,7 @@ function notLANIPv4(s: string) {
 }
 
 export async function ip(source: 'shakaianee', s: string) {
+  if (!s) return '你的... IP 地址在哪里喵?';
   // try to resolve
   const a = isIPv4(s);
   if (!a) s = (await resolve4(s))[0];
