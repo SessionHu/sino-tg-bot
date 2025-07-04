@@ -363,6 +363,7 @@ function getWeatherEmojiFromInfo(i: string) {
   else if (i === '阴') return '☁';
   else if (i === '中雨' || i === '小雨' || i === '大雨') return '🌧';
   else if (i === '雷阵雨') return '⛈️';
+  else if (i.includes('雪')) return '❄️';
   else return '☁️';
 }
 
@@ -405,6 +406,8 @@ export async function fromKeyword(keyword: string): Promise<{
     `气温🌡: ${w.real.weather.temperature}°C\n` +
     `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
     `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n` +
+    `空气🌫️: ${w.air.text} ${w.air.aqi === 9999 ? '' : `(${w.air.aqi})`}\n` +
+    `日间🌅: ${w.real.sunriseSunset.sunrise.split(' ')[1]} ~ ${w.real.sunriseSunset.sunset.split(' ')[1]}\n` +
     `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n` +
     `来源🌐: <a href="${NMC_BASE}${w.real.station.url}">中央气象台</a>`;
   // image
