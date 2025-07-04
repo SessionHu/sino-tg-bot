@@ -10,5 +10,5 @@ export async function raderURLs(url: string): Promise<string[]> {
   }).then(r => r.text());
   const rootelem = parse(htmltext);
   const timeWrap = rootelem.getElementById('timeWrap');
-  return timeWrap?.children.map(e => e.getAttribute('data-img')).splice(0, 20).filter(Boolean).reverse() as string[] ?? [];
+  return timeWrap?.children.map(e => e.getAttribute('data-img')).splice(0, 40).filter(Boolean).reverse() as string[] ?? [];
 }
