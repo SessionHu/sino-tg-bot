@@ -8,6 +8,7 @@ import * as logger from './logger';
 import * as shell from './shell';
 import * as weatherNMC from './weather/nmc';
 import * as escape from './escape';
+import * as inet from './inet';
 
 dotenv.config();
 
@@ -85,6 +86,25 @@ bot.command('weather', async (ctx) => {
         parse_mode: 'HTML'
       });
     } else ctx.replyWithHTML(w.caption);
+  } catch (e) {
+    ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
+    logger.error(e);
+  }
+});
+
+bot.command('ip', async (ctx) => {
+  dbhelper.write(JSON.stringify(ctx.message));
+  logger.logMessage(ctx);
+  ctx.sendChatAction('typing').catch(logger.warn);
+  try {
+    const r = await inet.ip('shakaianee', ctx.text.split(/\s+/)[1]);
+    if (typeof r === 'string') {
+      ctx.replyWithHTML(r.replace(/\<br(.*\/)?\>/g, '\n'));
+    } else if (typeof r === 'object') {
+      ctx.replyWithMarkdownV2('```json\n' + JSON.stringify(r, null, 2) + '\n```');
+    } else {
+      ctx.reply('结果异常: ' + r);
+    }
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
     logger.error(e);
