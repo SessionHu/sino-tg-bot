@@ -66,6 +66,7 @@ export async function fromContext(ctx: Context<Update.MessageUpdate<Message.Text
     || text[0] === 'dig'
     || text[0] === 'man'
     || text[0] === 'date'
+    || text[0] === 'free'
     || text[0] === 'whois')
   {
     const v = await execNoShellPlain(text[0], text.slice(1));
