@@ -12,6 +12,7 @@ This bot provides basic functionality such as responding to commands, echoing te
 
 * `/start`:  Greets the user and provides a welcome message.
 * `/help`:  Displays a list of available commands.
+* `/weather [keyword]`: Get latest weather information from NMC.
 * `/echo [text]`:  Echoes the provided text.
 * `/img`:  Sends a random cat image.
 * `/shell`:  (Privileged) Executes shell commands.  Use with caution!
