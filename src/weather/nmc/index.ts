@@ -391,25 +391,28 @@ export async function fromKeyword(keyword: string): Promise<{
   // search station id
   const atcplt = (await autocomplete(keyword));
   if (!atcplt.data) throw new Error(atcplt.msg);
-  const station = atcplt.data[atcplt.data.findIndex(v => {
+  const stationfield = atcplt.data[atcplt.data.findIndex(v => {
     if (v.includes(keyword)) return true;
   }) || 0];
-  if (!station) return { caption: `未找到城市: ${keyword}!` };
-  const stationid = station.split('|')[0];
+  if (!stationfield) return { caption: `未找到城市: ${keyword}!` };
+  const stationid = stationfield.split('|')[0];
   // get weather
   const w = (await weather(stationid)).data;
   if (!w) return { caption: `查询城市 ${keyword} 失败!` };
   // caption
-  const caption =
-    `城市🏙: ${w.real.station.province} ${w.real.station.city}\n` +
+  const station = (w.real ? w.real : w.predict).station;
+  let caption = '';
+  caption += `城市🏙: ${station.province} ${station.city}\n`;
+  if (w.real) caption +=
     `天气${getWeatherEmojiFromInfo(w.real.weather.info)}: ${w.real.weather.info}\n` +
     `气温🌡: ${w.real.weather.temperature}°C\n` +
     `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
-    `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n` +
-    `空气🌫️: ${w.air.text} ${w.air.aqi === 9999 ? '' : `(${w.air.aqi})`}\n` +
+    `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n`;
+  caption += `空气🌫️: ${w.air.text} ${w.air.aqi === 9999 ? '' : `(${w.air.aqi})`}\n`;
+  if (w.real) caption +=
     `日间🌅: ${w.real.sunriseSunset.sunrise.split(' ')[1]} ~ ${w.real.sunriseSunset.sunset.split(' ')[1]}\n` +
-    `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n` +
-    `来源🌐: <a href="${NMC_BASE}${w.real.station.url}">中央气象台</a>`;
+    `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n`;
+  caption += `来源🌐: <a href="${NMC_BASE}${station.url}">中央气象台</a>`;
   // image
   const image = await rader(w.radar);
   // return
