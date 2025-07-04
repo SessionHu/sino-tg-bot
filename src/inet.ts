@@ -1,3 +1,5 @@
+import { resolve4 } from 'node:dns/promises';
+
 import * as logger from './logger';
 
 const parseIntDig = (e: string) => parseInt(e);
@@ -19,7 +21,12 @@ function notLANIPv4(s: string) {
 }
 
 export async function ip(source: 'shakaianee', s: string) {
-  if (!(s = isIPv4(s))) return `你給的好像不是一个有效的 IPv4 地址捏~ 咱目前仅支持 IPv4 喵~`;
+  // try to resolve
+  const a = isIPv4(s);
+  if (!a) s = (await resolve4(s))[0];
+  else s = a;
+  if (!s) return `你給的东西好像变不成一个有效的 IPv4 地址捏~ 咱目前仅支持 IPv4 喵~`;
+  // get data
   if (source === 'shakaianee') return shakaianee(s);
 }
 
