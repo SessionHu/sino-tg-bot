@@ -374,7 +374,8 @@ function getWeatherEmojiFromInfo(i: string) {
 function getTimeEmojiFromTime(dt: NMCDateTime) {
   // h, m
   let [h, m] = dt.split(' ')[1].split(':').map(Number);
-  if (h >= 12) h -= 12;
+  if (h > 12) h -= 12;
+  else if (h === 0) h = 12;
   if (m >= 40) [h++, m = 0];
   else if (m < 40 && m > 20) m = 30;
   else m = 0;
