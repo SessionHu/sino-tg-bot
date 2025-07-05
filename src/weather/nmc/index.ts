@@ -3,6 +3,7 @@ import * as frames2mp4 from '../../ffmpeg/frames2mp4';
 import { raderURLs } from './dom';
 
 import type { InputFile } from 'telegraf/types';
+import type { IncomingHttpHeaders } from 'node:http';
 
 type StationId = string;
 type NMCDateTime = `${string}-${string}-${string} ${string}:${string}`;
@@ -309,7 +310,7 @@ const NMC_API_URLS = {
   autocomplete: 'https://www.nmc.cn/essearch/api/autocomplete'
 };
 
-export const HEADERS = {
+const HEADERS: NodeJS.Dict<string> = {
   'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
   'Referer': 'https://www.nmc.cn/'
 };
@@ -429,10 +430,10 @@ export async function fromKeyword(keyword: string): Promise<{
 }
 
 async function rader(wr: WeatherRadar): Promise<InputFile> {
-  const urls = await raderURLs(NMC_BASE + wr.url);
+  const urls = await raderURLs(NMC_BASE + wr.url, HEADERS);
   try {
     if (urls.length) return {
-      source: await frames2mp4.fromURLs(urls)
+      source: await frames2mp4.fromURLs(urls, HEADERS)
     };
   } catch (e) {
     logger.warn(e);

@@ -1,29 +1,33 @@
 import { execNoShell } from '../shell';
 import * as logger from '../logger';
 
-import { HEADERS } from '../weather/nmc';
-
 import { readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
+
+import type { IncomingHttpHeaders } from 'node:http';
 
 import pLimit from 'p-limit';
 
 const limit = pLimit(16);
 
-export async function fromURLs(urls: string[]): Promise<Buffer> {
+export async function fromURLs(urls: string[], headers?: IncomingHttpHeaders & NodeJS.Dict<string>): Promise<Buffer> {
   // get timestamp for temp file names
   const tshex = Date.now().toString(16);
   // download pngs
   let extn: string = '.PNG';
   const frameFiles = urls.map(async (e, i) => {
     const filepath = join(tmpdir(), tshex + '-' + i.toString().padStart(2, '0') + (extn = extname(new URL(e).pathname)));
+    const headerparams = new Array<string>;
+    for (const k in headers)
+      if (headers[k])
+        headerparams.push('--header', `${k}: ${headers[k]}`);
     return limit(async () => {
       await execNoShell('wget', [
         e,
         '--random-wait',
         '--timeout=4',
-        '-U', HEADERS['User-Agent'],
+        ...headerparams,
         '-O', filepath
       ]);
       return filepath;
