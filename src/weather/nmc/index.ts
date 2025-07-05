@@ -138,6 +138,9 @@ interface WeatherReal {
      * 当值为 9999 时无效
      */
     signallevel: string,
+    signaltype: string,
+    fmeans: string,
+    issuecontent: string,
     url: string,
     /**
      * 图片地址
@@ -409,9 +412,12 @@ export async function fromKeyword(keyword: string): Promise<{
     `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
     `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n`;
   if (w.air) caption += `空气🌫️: ${w.air.text} ${w.air.aqi === 9999 ? '' : `(${w.air.aqi})`}\n`;
-  if (w.real) caption +=
-    `日间🌅: ${w.real.sunriseSunset.sunrise.split(' ')[1]} ~ ${w.real.sunriseSunset.sunset.split(' ')[1]}\n` +
-    `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n`;
+  if (w.real) {
+    caption += `日间🌅: ${w.real.sunriseSunset.sunrise.split(' ')[1]} ~ ${w.real.sunriseSunset.sunset.split(' ')[1]}\n`;
+    if (w.real.warn && w.real.warn.alert !== '9999')
+      caption += `预警🚨: <a href="${NMC_BASE}${w.real.warn.url}">${w.real.warn.signaltype}${w.real.warn.signallevel}预警</a>\n`;
+    caption += `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n`;
+  }
   caption += `来源🌐: <a href="${NMC_BASE}${station.url}">中央气象台</a>`;
   // image
   const image = await rader(w.radar);
@@ -425,14 +431,11 @@ export async function fromKeyword(keyword: string): Promise<{
 async function rader(wr: WeatherRadar): Promise<InputFile> {
   const urls = await raderURLs(NMC_BASE + wr.url);
   try {
-    if (urls.length) 
-      return {
-        source: await frames2mp4.fromURLs(urls)
-      };
+    if (urls.length) return {
+      source: await frames2mp4.fromURLs(urls)
+    };
   } catch (e) {
     logger.warn(e);
   }
-  return {
-    url: IMAGE_BASE + wr.image
-  };
+  return { url: IMAGE_BASE + wr.image };
 }
