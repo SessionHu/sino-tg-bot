@@ -3,10 +3,9 @@ import * as frames2mp4 from '../../ffmpeg/frames2mp4';
 import { raderURLs } from './dom';
 
 import type { InputFile } from 'telegraf/types';
-import type { IncomingHttpHeaders } from 'node:http';
 
-type StationId = string;
-type NMCDateTime = `${string}-${string}-${string} ${string}:${string}`;
+export type StationId = string;
+export type NMCDateTime = `${string}-${string}-${string} ${string}:${string}`;
 
 interface Station {
   city: string,
@@ -307,7 +306,8 @@ interface WeatherPredictWeatherWind {
 const NMC_API_URLS = {
   position: 'https://www.nmc.cn/rest/position',
   weather: 'https://www.nmc.cn/rest/weather',
-  autocomplete: 'https://www.nmc.cn/essearch/api/autocomplete'
+  autocomplete: 'https://www.nmc.cn/essearch/api/autocomplete',
+  province: 'https://www.nmc.cn/rest/province/'
 };
 
 const HEADERS: NodeJS.Dict<string> = {
@@ -361,76 +361,30 @@ export async function autocomplete(q: string, limit = 10): Promise<{
   return await resp.json() as any;
 }
 
-function getWeatherEmojiFromInfo(i: string) {
-  if (i === '晴') return '☀️';
-  else if (i.includes('多云') || i.includes('转阴') || i.includes('转晴')) return '⛅';
-  else if (i === '阴') return '☁';
-  else if (i === '中雨' || i === '小雨' || i === '大雨') return '🌧';
-  else if (i === '雷阵雨') return '⛈️';
-  else if (i.includes('雪')) return '❄️';
-  else return '☁️';
+export async function provinceAll(): Promise<{
+  code: string,
+  name: string,
+  url: string
+}[]> {
+  const url = NMC_API_URLS.province + 'all?_=' + Date.now();
+  logger.info('[weather] [NMC]', url);
+  const res = await fetch(url, { headers: HEADERS });
+  return res.json() as any;
 }
 
-function getTimeEmojiFromTime(dt: NMCDateTime) {
-  // h, m
-  let [h, m] = dt.split(' ')[1].split(':').map(Number);
-  if (h > 12) h -= 12;
-  else if (h === 0) h = 12;
-  if (m >= 40) [h++, m = 0];
-  else if (m < 40 && m > 20) m = 30;
-  else m = 0;
-  // return
-  if (m === 30)
-    return String.fromCodePoint(0x1f55b + h); // 🕧 ~ 🕦
-  else if (m === 0)
-    return String.fromCodePoint(0x1f54f + h); // 🕛 ~ 🕚
-  else
-    return '⏱️';
+export async function provinceCity(provincode: string): Promise<{
+  code: string,
+  province: string,
+  city: string,
+  url: string
+}[]> {
+  const url = NMC_API_URLS.province + provincode + '?_=' + Date.now();
+  logger.info('[weather] [NMC]', url);
+  const res = await fetch(url, { headers: HEADERS });
+  return res.json() as any;
 }
 
-export async function fromKeyword(keyword: string): Promise<{
-  caption: string,
-  image?: InputFile
-}> {
-  if (!keyword) return { caption: '查询城市名称不能少于 1 个字符!'};
-  // search station id
-  const atcplt = (await autocomplete(keyword));
-  if (!atcplt.data) throw new Error(atcplt.msg);
-  const stationfield = atcplt.data[atcplt.data.findIndex(v => {
-    if (v.includes(keyword)) return true;
-  }) || 0];
-  if (!stationfield) return { caption: `未找到城市: ${keyword}!` };
-  const stationid = stationfield.split('|')[0];
-  // get weather
-  const w = (await weather(stationid)).data;
-  if (!w) return { caption: `查询城市 ${keyword} 失败!` };
-  // caption
-  const station = (w.real ? w.real : w.predict).station;
-  let caption = '';
-  caption += `城市🏙: ${station.province} ${station.city}\n`;
-  if (w.real) caption +=
-    `天气${getWeatherEmojiFromInfo(w.real.weather.info)}: ${w.real.weather.info}\n` +
-    `气温🌡: ${w.real.weather.temperature}°C\n` +
-    `风力💨: ${w.real.wind.direct === '9999' ? '无直接风向' : w.real.wind.direct} (${w.real.wind.degree === 9999 ? '-' : w.real.wind.degree}) ${w.real.wind.power} (${w.real.wind.speed})\n` +
-    `降水💧: ${w.real.weather.rain === 9999 ? '无' : w.real.weather.rain + 'mm'}\n`;
-  if (w.air) caption += `空气🌫️: ${w.air.text} ${w.air.aqi === 9999 ? '' : `(${w.air.aqi})`}\n`;
-  if (w.real) {
-    caption += `日间🌅: ${w.real.sunriseSunset.sunrise.split(' ')[1]} ~ ${w.real.sunriseSunset.sunset.split(' ')[1]}\n`;
-    if (w.real.warn && w.real.warn.alert !== '9999')
-      caption += `预警🚨: <a href="${NMC_BASE}${w.real.warn.url}">${w.real.warn.signaltype}${w.real.warn.signallevel}预警</a>\n`;
-    caption += `发布${getTimeEmojiFromTime(w.real.publish_time)}: ${w.real.publish_time}\n`;
-  }
-  caption += `来源🌐: <a href="${NMC_BASE}${station.url}">中央气象台</a>`;
-  // image
-  const image = await rader(w.radar);
-  // return
-  return {
-    caption,
-    image
-  };
-}
-
-async function rader(wr: WeatherRadar): Promise<InputFile> {
+export async function rader(wr: WeatherRadar): Promise<InputFile> {
   const urls = await raderURLs(NMC_BASE + wr.url, HEADERS);
   try {
     if (urls.length) return {

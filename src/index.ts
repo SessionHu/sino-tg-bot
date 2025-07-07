@@ -6,9 +6,9 @@ import dotenv from 'dotenv';
 import DBHelper from './dbhelper';
 import * as logger from './logger';
 import * as shell from './shell';
-import * as weatherNMC from './weather/nmc';
 import * as escape from './escape';
 import * as inet from './inet';
+import * as weather from './weather';
 
 dotenv.config();
 
@@ -76,9 +76,14 @@ bot.command('shell', async (ctx) => {
 bot.command('weather', async (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
-  ctx.sendChatAction('typing').catch(logger.warn);
   try {
-    const w = await weatherNMC.fromKeyword(ctx.text.split(/\s+/).splice(1).join(' '));
+    const kw = ctx.text.split(/\s+/).splice(1).join(' ');
+    if (!kw) {
+      const { caption, inline_keyboard } = await weather.withInlineKeyboard();
+      return ctx.reply(caption, { reply_markup: { inline_keyboard } });
+    }
+    ctx.sendChatAction('typing').catch(logger.warn);
+    const w = await weather.fromKeyword(kw);
     if (w.image) {
       ctx.sendChatAction('upload_photo').catch(logger.warn);
       await ctx['source' in w.image ? 'replyWithAnimation' : 'replyWithPhoto'](w.image, {
@@ -89,6 +94,34 @@ bot.command('weather', async (ctx) => {
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
     logger.error(e);
+  }
+});
+
+bot.on('callback_query', async (ctx) => {
+  if (!('data' in ctx.callbackQuery)) return;
+  const data = ctx.callbackQuery.data.split(':');
+  logger.info('[callback_query]', data);
+  if (data[0] === 'weather' && data[1] === 'province') {
+    // weather:province:xxx
+    const { caption, inline_keyboard } = await weather.withInlineKeyboard(data[2]);
+    ctx.editMessageText(caption, {
+      reply_markup: { inline_keyboard }
+    });
+  } else if (data[0] === 'weather' && data[1] === 'city') {
+    // weather:city:xxx
+    ctx.sendChatAction('typing').catch(logger.warn);
+    ctx.editMessageText('正在查询 ' + data[2] + '...');
+    const w = await weather.fromStationId(data[2]);
+    if (w.image) {
+      ctx.sendChatAction('upload_photo').catch(logger.warn);
+      await ctx['source' in w.image ? 'replyWithAnimation' : 'replyWithPhoto'](w.image, {
+        caption: w.caption,
+        parse_mode: 'HTML'
+      });
+    } else {
+      ctx.replyWithHTML(w.caption);
+    }
+    ctx.deleteMessage();
   }
 });
 
