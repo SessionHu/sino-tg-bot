@@ -9,7 +9,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 
 import pLimit from 'p-limit';
 
-const limit = pLimit(16);
+const limit = pLimit(8);
 
 export async function fromURLs(urls: string[], headers?: IncomingHttpHeaders & NodeJS.Dict<string>): Promise<Buffer> {
   // get timestamp for temp file names
@@ -45,7 +45,8 @@ export async function fromURLs(urls: string[], headers?: IncomingHttpHeaders & N
     '-filter_complex', 'scale=w=trunc(iw/2)*2:h=trunc(ih/2)*2:flags=lanczos',
     '-r:v', '5',
     '-codec:v', 'libx264',
-    '-preset', 'slower',
+    '-preset', 'slow',
+    '-crf', '26',
     '-pix_fmt', 'yuv420p', // 兼容性最好的像素格式
     '-movflags', '+faststart', // 优化网络流式播放
     '-tune', 'stillimage', // 针对静态图像优化
