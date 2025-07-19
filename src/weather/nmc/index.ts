@@ -1,5 +1,5 @@
 import * as logger from '../../logger';
-import * as frames2mp4 from '../../ffmpeg/frames2mp4';
+import * as frames2matroska from '../../ffmpeg/frames2matroska';
 import { raderURLs } from './dom';
 
 import type { InputFile } from 'telegraf/types';
@@ -388,7 +388,7 @@ export async function rader(wr: WeatherRadar): Promise<InputFile> {
   const urls = await raderURLs(NMC_BASE + wr.url, HEADERS);
   try {
     if (urls.length) return {
-      source: await frames2mp4.fromURLs(urls, HEADERS)
+      source: await frames2matroska.fromURLs(urls, HEADERS)
     };
   } catch (e) {
     logger.warn(e);

@@ -13,11 +13,11 @@ export async function exec(command: string) {
   return promisedExec(command);;
 }
 
-export async function execNoShell(command: string, args?: string[], encoding?: BufferEncoding, aloneStderr?: false): Promise<string>;
+export async function execNoShell(command: string, args?: string[], encoding?: BufferEncoding, aloneStderr?: false, stdin?: Buffer): Promise<string>;
 export async function execNoShell(command: string, args: string[], encoding: null, aloneStderr?: false): Promise<Buffer>;
-export async function execNoShell(command: string, args: string[], encoding: BufferEncoding, aloneStderr: true): Promise<{stdout: string, stderr: string}>;
-export async function execNoShell(command: string, args: string[], encoding: null, aloneStderr: true): Promise<{stdout: Buffer, stderr: Buffer}>;
-export async function execNoShell(command: string, args = new Array<string>, encoding: BufferEncoding | null = 'utf8', aloneStderr = false) {
+export async function execNoShell(command: string, args: string[], encoding: BufferEncoding, aloneStderr: true, stdin?: Buffer): Promise<{stdout: string, stderr: string}>;
+export async function execNoShell(command: string, args: string[], encoding: null, aloneStderr: true, stdin?: Buffer): Promise<{stdout: Buffer, stderr: Buffer}>;
+export async function execNoShell(command: string, args = new Array<string>, encoding: BufferEncoding | null = 'utf8', aloneStderr = false, stdin?: Buffer) {
   logger.info('[shell] :', [command, ...args]);
   const chunks = new Array<Buffer>;
   const stderc = aloneStderr ? new Array<Buffer> : null;
@@ -30,6 +30,7 @@ export async function execNoShell(command: string, args = new Array<string>, enc
       LD_PRELOAD: process.env.LD_PRELOAD
     }
   });
+  if (stdin) cp.stdin.write(stdin), cp.stdin.end();
   cp.stdout.on('data', (chunk) => {
     if (chunk instanceof Buffer) chunks.push(chunk);
   });
