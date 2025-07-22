@@ -27,7 +27,8 @@ export async function execNoShell(command: string, args = new Array<string>, enc
       PATH: process.env.PATH,
       HOME: process.env.HOME,
       SHELL: process.argv[0],
-      LD_PRELOAD: process.env.LD_PRELOAD
+      LD_PRELOAD: process.env.LD_PRELOAD,
+      LANG: process.env.LANG
     }
   });
   if (stdin) cp.stdin.write(stdin), cp.stdin.end();
