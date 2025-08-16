@@ -36,8 +36,8 @@ export async function fromURLs(urls: string[], headers?: IncomingHttpHeaders & N
     '-filter_complex', 'scale=w=trunc(iw/2)*2:h=trunc(ih/2)*2:flags=lanczos',
     '-r:v', '5',
     '-codec:v', 'libx264',
-    '-preset', 'slow',
-    '-crf', '26',
+    '-preset', 'medium',
+    '-crf', '36',
     '-pix_fmt', 'yuv420p', // 兼容性最好的像素格式
     '-tune', 'stillimage', // 针对静态图像优化
     '-f', 'matroska',
