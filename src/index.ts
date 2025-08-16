@@ -4,18 +4,22 @@ import { message } from 'telegraf/filters';
 import dotenv from 'dotenv';
 
 import DBHelper from './dbhelper';
+import UserStatus from './userstatus';
 import * as logger from './logger';
 import * as shell from './shell';
 import * as escape from './escape';
 import * as inet from './inet';
 import * as weather from './weather';
+import * as stickers from './stickers';
 
 dotenv.config();
 
-const bot = new Telegraf(process.env.BOT_TOKEN!);
+export const bot = new Telegraf(process.env.BOT_TOKEN!);
 delete process.env.BOT_TOKEN;
 
 const dbhelper = new DBHelper('./db.jsonl');
+
+const userstatus = new UserStatus;
 
 // 处理 /start 命令
 bot.start((ctx) => {
@@ -33,7 +37,7 @@ bot.help((ctx) => {
     '/start \\- 启动机器人\n' +
     '/help \\- 显示帮助\n' +
     '/echo \\[文本\\] \\- 回复相同文本\n' +
-    '/weather \\[关键词\\] \\- 从 NMC 获取实时的天气及动态雷达图📡\n' +
+    '/weather \\<关键词\\> \\- 从 NMC 获取实时的天气及动态雷达图📡\n' +
     '/img \\- 获取随机猫猫图片\n' +
     '*🚫特权命令:*\n' +
     '/shell \\- 无可奉告'
@@ -144,20 +148,35 @@ bot.command('ip', async (ctx) => {
   }
 });
 
+// 处理贴纸
+bot.on(message('sticker'), async (ctx) => {
+  dbhelper.write(JSON.stringify(ctx.message));
+  logger.logMessage(ctx);
+  const stk = ctx.message.sticker;
+  if (userstatus.get(ctx.message.from.id, 'STICKER_TO_FILE'))
+    ctx.sendChatAction('upload_document').catch(logger.warn),
+    await ctx.replyWithDocument(await stickers.sticker2file(stk));
+  else if (ctx.chat.type === 'private')
+    await ctx.replyWithSticker(stk.file_id);
+});
+
+bot.command('sticker2file', async (ctx) => {
+  dbhelper.write(JSON.stringify(ctx.message));
+  logger.logMessage(ctx);
+  if (!userstatus.get(ctx.message.from.id, 'STICKER_TO_FILE'))
+    userstatus.set(ctx.message.from.id, 'STICKER_TO_FILE', 'true'),
+    await ctx.sendMessage('贴纸转文件已开启喵~');
+  else
+    userstatus.drop(ctx.message.from.id, 'STICKER_TO_FILE'),
+    await ctx.sendMessage('贴纸转文件已关闭喵~');
+});
+
 // 处理普通文本
 bot.on(message('text'), (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
   if (ctx.chat.type === 'private')
     ctx.replyWithHTML(`你说了: "<code>${escape.escapeHtmlText(ctx.message.text)}</code>"`).catch(logger.error);
-});
-
-// 处理贴纸
-bot.on(message('sticker'), (ctx) => {
-  dbhelper.write(JSON.stringify(ctx.message));
-  logger.logMessage(ctx);
-  if (ctx.chat.type === 'private')
-    ctx.replyWithSticker(ctx.message.sticker.file_id);
 });
 
 // 错误处理

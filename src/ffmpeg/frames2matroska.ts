@@ -7,12 +7,22 @@ import pLimit from 'p-limit';
 
 const limit = pLimit(8);
 
+//const cache = new Map<string, Buffer>;
+
+//setInterval(() => {
+//  if (cache.size <= 128) return;
+//  for (const k of Array.from(cache.keys()).slice(0, cache.size - 128))
+//    cache.delete(k);
+//}), 6e5;
+
 async function fetchAllFrames(urls: string[], headers?: IncomingHttpHeaders & NodeJS.Dict<string>): Promise<Buffer> {
   const res: Promise<Buffer>[] = urls.map(async (url) => {
+    //if (cache.has(url)) return cache.get(url)!;
     return limit(async () => {
       const resp = await fetch(url, { headers });
-      const buf = await resp.arrayBuffer();
-      return Buffer.from(buf);
+      const buf = Buffer.from(await resp.arrayBuffer());
+      //cache.set(url, buf);
+      return buf;
     });
   });
   return Buffer.concat(await Promise.all(res));
