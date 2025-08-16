@@ -317,7 +317,7 @@ const HEADERS: NodeJS.Dict<string> = {
 
 export async function position(stationid?: StationId) : Promise<Station> {
   const url = NMC_API_URLS.position + (stationid ? `?stationid=${stationid}&` : '?') + '_=' + Date.now();
-  logger.info('[weather] [NMCl', url);
+  logger.info('[weather] [NMC]', url);
   const resp = await fetch(url, {
     headers: {
       ...HEADERS,
@@ -333,7 +333,7 @@ export async function weather(stationid: StationId) : Promise<{
   data?: WeatherData
 }> {
   const url = NMC_API_URLS.weather + (stationid ? `?stationid=${stationid}&` : '?') + '_=' + Date.now();
-  logger.info('[weather] [NMCl', url);
+  logger.info('[weather] [NMC]', url);
   const resp = await fetch(url, {
     headers: {
       ...HEADERS,
@@ -354,7 +354,7 @@ export async function autocomplete(q: string, limit = 10): Promise<{
     ['timestamp', Date.now().toString()],
     ['_', Date.now().toString()]
   ]).toString();
-  logger.info('[weather] [NMCl', url);
+  logger.info('[weather] [NMC]', url);
   const resp = await fetch(url, {
     headers: HEADERS
   });
