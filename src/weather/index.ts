@@ -30,21 +30,31 @@ function getClockEmojiFromTime(dt: nmc.NMCDateTime) {
     return '⏱️';
 }
 
-export async function fromKeyword(kw: string, preferStaticImage = false): Promise<{
+export async function fromKeyword(kw: string, preferStaticImage?: boolean): Promise<{
   caption: string,
   image?: InputFile,
-}> {
+}>;
+export async function fromKeyword(kw: string, preferStaticImage: boolean, list: true): Promise<{
+  caption: string,
+  image?: InputFile,
+}[]>;
+export async function fromKeyword(kw: string, preferStaticImage = false, uselist = false) {
   if (!kw) return { caption: '查询城市名称不能少于 1 个字符!' };
   // search station id
   const atcplt = await nmc.autocomplete(kw);
   if (!atcplt.data) throw new Error(atcplt.msg);
-  const stationfield = atcplt.data[atcplt.data.findIndex(v => {
-    if (v.includes(kw)) return true;
-  }) || 0];
-  if (!stationfield) return { caption: `不好意思喵, 未找到城市: ${kw}!` };
-  const stationid = stationfield.split('|')[0];
-  // get weather
-  return fromStationId(stationid, preferStaticImage);
+  if (!atcplt.data.length) return { caption: `不好意思喵, 未找到城市: ${kw}!` };
+  if (uselist) {
+    const f = atcplt.data.filter(v => v.includes(kw));
+    atcplt.data = f.length ? f : atcplt.data;
+  } else atcplt.data = [atcplt.data[atcplt.data.findIndex(v => v.includes(kw)) || 0]];
+  const results = [];
+  for (const stationfield of atcplt.data) {
+    const stationid = stationfield.split('|')[0];
+    // get weather
+    results.push(fromStationId(stationid, preferStaticImage));
+  }
+  return uselist ?  Promise.all(results) : results[0];
 }
 
 export async function fromStationId(s: nmc.StationId, preferStaticImage = false) {

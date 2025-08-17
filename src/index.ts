@@ -112,32 +112,36 @@ bot.command('weather', async (ctx) => {
 bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
   logger.info('[inline_query]', ctx.inlineQuery.query);
   try {
-    const w = await weather.fromKeyword(ctx.match[1]);
-    if (!w.image) {
-      return await ctx.answerInlineQuery([{
-        type: 'article',
+    const res = new Array<InlineQueryResult>;
+    for (const w of await weather.fromKeyword(ctx.match[1], false, true)) {
+      if (!w.image) {
+        res.push({
+          type: 'article',
+          id: crypto.randomUUID(),
+          title: '天气预报',
+          input_message_content: {
+            message_text: w.caption,
+            parse_mode: 'HTML',
+          },
+          description: w.caption
+        });
+        continue;
+      }
+      const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image)
+      const fileId = 'document' in m ? m.document.file_id : m.photo[0].file_id;
+      res.push({
+        type: 'source' in w.image ? 'video' : 'photo',
         id: crypto.randomUUID(),
+        caption: w.caption,
+        parse_mode: 'HTML',
         title: '天气预报',
-        input_message_content: {
-          message_text: w.caption,
-          parse_mode: 'HTML',
-        },
-        description: w.caption
-      }]);
+        description: w.caption,
+        video_file_id: fileId,
+        photo_file_id: fileId
+      } as InlineQueryResult);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
     }
-    const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image)
-    const fileId = 'document' in m ? m.document.file_id : m.photo[0].file_id;
-    await ctx.answerInlineQuery([{
-      type: 'source' in w.image ? 'video' : 'photo',
-      id: crypto.randomUUID(),
-      caption: w.caption,
-      parse_mode: 'HTML',
-      title: '天气预报',
-      description: w.caption,
-      video_file_id: fileId,
-      photo_file_id: fileId
-    } as InlineQueryResult]);
-    setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
+    await ctx.answerInlineQuery(res);
   } catch (e) {
     logger.error(e);
   }
