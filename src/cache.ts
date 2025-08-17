@@ -1,12 +1,26 @@
+import { zstdCompress, zstdDecompress } from 'node:zlib';
+import { promisify } from 'node:util';
+
+const zstd = promisify(zstdCompress);
+const unzstd = promisify(zstdDecompress);
+
 export default class Cache<K, V> {
   readonly #map = new Map<K, V>;
   readonly maxSize: number;
-  set(key: K, value: V): void {
-    this.#map.set(key, value);
-    this.clean();
+  async set(key: K, value: V): Promise<void> {
+    if (this.#map.has(key)) this.#map.delete(key);
+    const v = value instanceof Buffer ? await zstd(value) : value;
+    this.#map.set(key,  v as V);
+    if (this.#map.size > this.maxSize)
+      this.#map.delete(this.#map.keys().next().value!);
   }
-  get(key: K): V | undefined {
-    return this.#map.get(key);
+  async get(key: K): Promise<V | undefined> {
+    if (!this.#map.has(key)) return;
+    const v = this.#map.get(key)!;
+    const d = v instanceof Buffer ? await unzstd(v) : v;
+    this.#map.delete(key);
+    this.#map.set(key, v);
+    return d as V;
   }
   has(key: K): boolean {
     return this.#map.has(key);
@@ -18,16 +32,8 @@ export default class Cache<K, V> {
     this.#map.clear();
   }
   constructor(maxSize = 128) {
-    if (maxSize <= 0) {
+    if (maxSize <= 0)
       throw new Error('maxSize must be a positive number');
-    }
     this.maxSize = maxSize;
-    setInterval(() => this.clean(), 3.6e6);
-  }
-  clean(): void {
-    while (this.#map.size > this.maxSize) {
-      const k = this.#map.keys().next().value;
-      k && this.#map.delete(k);
-    }
   }
 }

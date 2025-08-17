@@ -9,5 +9,11 @@ export async function raderURLs(url: string, headers: IncomingHttpHeaders & Node
   const htmltext = await fetch(url, { headers }).then(r => r.text());
   const rootelem = parse(htmltext);
   const timeWrap = rootelem.getElementById('timeWrap');
-  return timeWrap?.children.map(e => e.getAttribute('data-img')).splice(0, 40).filter(Boolean).reverse() as string[] ?? [];
+  return timeWrap?.children.map(e => {
+    const s = e.getAttribute('data-img');
+    if (!s) return '';
+    const u = new URL(s);
+    u.search = '';
+    return u.toString();
+  }).splice(0, 40).filter(Boolean).reverse() as string[] ?? [];
 }

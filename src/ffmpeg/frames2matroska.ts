@@ -12,7 +12,7 @@ const cache = new Cache<string, Buffer>;
 
 async function fetchAllFrames(urls: string[], headers?: IncomingHttpHeaders & NodeJS.Dict<string>): Promise<Buffer> {
   const res: Promise<Buffer>[] = urls.map(async (url) => {
-    if (cache.has(url)) return cache.get(url)!;
+    if (cache.has(url)) return (await cache.get(url))!;
     return limit(async () => {
       const resp = await fetch(url, { headers });
       const buf = Buffer.from(await resp.arrayBuffer());
