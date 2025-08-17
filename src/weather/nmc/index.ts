@@ -384,11 +384,12 @@ export async function provinceCity(provincode: string): Promise<{
   return res.json() as any;
 }
 
-export async function rader(wr: WeatherRadar): Promise<InputFile> {
+export async function rader(wr: WeatherRadar, preferStaticImage = false): Promise<InputFile> {
   const urls = await raderURLs(NMC_BASE + wr.url, HEADERS);
   try {
-    if (urls.length) return {
-      source: await frames2matroska.fromURLs(urls, HEADERS)
+    if (urls.length && !preferStaticImage) return {
+      source: await frames2matroska.fromURLs(urls, HEADERS),
+      filename: crypto.randomUUID() + '.mkv'
     };
   } catch (e) {
     logger.warn(e);

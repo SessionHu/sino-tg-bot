@@ -30,7 +30,7 @@ function getClockEmojiFromTime(dt: nmc.NMCDateTime) {
     return '⏱️';
 }
 
-export async function fromKeyword(kw: string): Promise<{
+export async function fromKeyword(kw: string, preferStaticImage = false): Promise<{
   caption: string,
   image?: InputFile,
 }> {
@@ -44,10 +44,10 @@ export async function fromKeyword(kw: string): Promise<{
   if (!stationfield) return { caption: `不好意思喵, 未找到城市: ${kw}!` };
   const stationid = stationfield.split('|')[0];
   // get weather
-  return fromStationId(stationid);
+  return fromStationId(stationid, preferStaticImage);
 }
 
-export async function fromStationId(s: nmc.StationId) {
+export async function fromStationId(s: nmc.StationId, preferStaticImage = false) {
   const wrs = await nmc.weather(s);
   if (!wrs.data) return {
     caption: `糟了! 查询 ${s} 失败!\n<pre>${escapeHtmlText(JSON.stringify(wrs, null, 2))}</pre>`
@@ -71,7 +71,7 @@ export async function fromStationId(s: nmc.StationId) {
   }
   caption += `来源🌐: <a href="${nmc.NMC_BASE}${station.url}">中央气象台</a>`;
   // image
-  const image = await nmc.rader(w.radar);
+  const image = await nmc.rader(w.radar, preferStaticImage);
   // return
   return {
     caption,

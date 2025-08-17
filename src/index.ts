@@ -17,6 +17,11 @@ dotenv.config();
 export const bot = new Telegraf(process.env.BOT_TOKEN!);
 delete process.env.BOT_TOKEN;
 
+if (!process.env.SINO_FILE_CENTER_CHAT_ID)
+  logger.warn('未设置 SINO_FILE_CENTER_CHAT_ID 环境变量, 部分文件功能可能异常!');
+const SINO_FILE_CENTER_CHAT_ID = process.env.SINO_FILE_CENTER_CHAT_ID!;
+delete process.env.SINO_FILE_CENTER_CHAT_ID;
+
 const dbhelper = new DBHelper('./db.jsonl');
 
 const userstatus = new UserStatus;
@@ -97,6 +102,38 @@ bot.command('weather', async (ctx) => {
     } else ctx.replyWithHTML(w.caption);
   } catch (e) {
     ctx.reply(e instanceof Error && e.stack ? e.stack : String(e));
+    logger.error(e);
+  }
+});
+
+bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
+  logger.info('[inline_query]', ctx.inlineQuery.query);
+  try {
+    const w = await weather.fromKeyword(ctx.match[1], true);
+    if (w.image && 'url' in w.image) {
+      const m = await ctx.telegram.sendPhoto(SINO_FILE_CENTER_CHAT_ID, w.image);
+      await ctx.answerInlineQuery([{
+        type: 'photo',
+        id: crypto.randomUUID(),
+        photo_file_id: m.photo[0].file_id,
+        caption: w.caption,
+        parse_mode: 'HTML',
+        title: '天气预报',
+        description: w.caption
+      }]);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
+    } else
+      await ctx.answerInlineQuery([{
+        type: 'article',
+        id: crypto.randomUUID(),
+        title: '天气预报',
+        input_message_content: {
+          message_text: w.caption,
+          parse_mode: 'HTML',
+        },
+        description: w.caption
+      }]);
+  } catch (e) {
     logger.error(e);
   }
 });
