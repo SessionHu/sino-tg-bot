@@ -389,7 +389,7 @@ export async function rader(wr: WeatherRadar, preferStaticImage = false): Promis
   try {
     if (urls.length && !preferStaticImage) return {
       source: await frames2matroska.fromURLs(urls, HEADERS),
-      filename: crypto.randomUUID() + '.mkv'
+      filename: crypto.randomUUID() + '.mkv.mp4'
     };
   } catch (e) {
     logger.warn(e);

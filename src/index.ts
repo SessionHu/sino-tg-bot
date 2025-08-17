@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
+import type { InlineQueryResult } from 'telegraf/types';
 
 import dotenv from 'dotenv';
 
@@ -109,21 +110,9 @@ bot.command('weather', async (ctx) => {
 bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
   logger.info('[inline_query]', ctx.inlineQuery.query);
   try {
-    const w = await weather.fromKeyword(ctx.match[1], true);
-    if (w.image && 'url' in w.image) {
-      const m = await ctx.telegram.sendPhoto(SINO_FILE_CENTER_CHAT_ID, w.image);
-      await ctx.answerInlineQuery([{
-        type: 'photo',
-        id: crypto.randomUUID(),
-        photo_file_id: m.photo[0].file_id,
-        caption: w.caption,
-        parse_mode: 'HTML',
-        title: '天气预报',
-        description: w.caption
-      }]);
-      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
-    } else
-      await ctx.answerInlineQuery([{
+    const w = await weather.fromKeyword(ctx.match[1]);
+    if (!w.image) {
+      return await ctx.answerInlineQuery([{
         type: 'article',
         id: crypto.randomUUID(),
         title: '天气预报',
@@ -133,6 +122,20 @@ bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
         },
         description: w.caption
       }]);
+    }
+    const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image)
+    const fileId = 'document' in m ? m.document.file_id : m.photo[0].file_id;
+    await ctx.answerInlineQuery([{
+      type: 'source' in w.image ? 'video' : 'photo',
+      id: crypto.randomUUID(),
+      caption: w.caption,
+      parse_mode: 'HTML',
+      title: '天气预报',
+      description: w.caption,
+      video_file_id: fileId,
+      photo_file_id: fileId
+    } as InlineQueryResult]);
+    setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
   } catch (e) {
     logger.error(e);
   }

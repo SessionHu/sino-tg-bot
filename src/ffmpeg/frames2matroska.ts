@@ -1,4 +1,5 @@
 import { execNoShell } from '../shell';
+import Cache from '../cache';
 import * as logger from '../logger';
 
 import type { IncomingHttpHeaders } from 'node:http';
@@ -7,21 +8,15 @@ import pLimit from 'p-limit';
 
 const limit = pLimit(8);
 
-//const cache = new Map<string, Buffer>;
-
-//setInterval(() => {
-//  if (cache.size <= 128) return;
-//  for (const k of Array.from(cache.keys()).slice(0, cache.size - 128))
-//    cache.delete(k);
-//}), 6e5;
+const cache = new Cache<string, Buffer>;
 
 async function fetchAllFrames(urls: string[], headers?: IncomingHttpHeaders & NodeJS.Dict<string>): Promise<Buffer> {
   const res: Promise<Buffer>[] = urls.map(async (url) => {
-    //if (cache.has(url)) return cache.get(url)!;
+    if (cache.has(url)) return cache.get(url)!;
     return limit(async () => {
       const resp = await fetch(url, { headers });
       const buf = Buffer.from(await resp.arrayBuffer());
-      //cache.set(url, buf);
+      cache.set(url, buf);
       return buf;
     });
   });
