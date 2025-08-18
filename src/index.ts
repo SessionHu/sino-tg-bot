@@ -109,37 +109,64 @@ bot.command('weather', async (ctx) => {
   }
 });
 
+bot.on('chosen_inline_result', async (ctx) => {
+  const resid = ctx.chosenInlineResult.result_id.split(':');
+  resid.shift(); // a useless random uuid
+  // weather:city:xxx
+  if (resid.length === 3 && resid[0] === 'weather' && resid[1] === 'city') {
+    const w = await weather.fromStationId(resid[2]);
+    if (w.image) {
+      const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
+			await ctx.editMessageMedia({
+        type: 'source' in w.image ? 'animation' : 'photo',
+        media: 'document' in m ? m.document.file_id : m.photo[0].file_id,
+        caption: w.caption,
+        parse_mode: 'HTML',
+      });
+    } else
+      await ctx.editMessageText(w.caption, {
+        parse_mode: 'HTML'
+      });
+  }
+});
+
 bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
   logger.info('[inline_query]', ctx.inlineQuery.query);
   try {
-    const res = new Array<InlineQueryResult>;
-    for (const w of await weather.fromKeyword(ctx.match[1], false, true)) {
-      if (!w.image) {
-        res.push({
-          type: 'article',
-          id: crypto.randomUUID(),
-          title: '天气预报',
-          input_message_content: {
-            message_text: w.caption,
-            parse_mode: 'HTML',
-          },
-          description: w.caption
-        });
-        continue;
-      }
-      const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image)
-      const fileId = 'document' in m ? m.document.file_id : m.photo[0].file_id;
-      res.push({
-        type: 'source' in w.image ? 'video' : 'photo',
+    const stations = await weather.nmc.autocomplete(ctx.match[1] || '北京');
+    if (!stations.data || stations.data.length === 0) {
+      const description = stations.msg || '未找到城市: ' + ctx.match[1];
+      await ctx.answerInlineQuery([{
+        type: 'article',
         id: crypto.randomUUID(),
-        caption: w.caption,
-        parse_mode: 'HTML',
-        title: '天气预报',
-        description: w.caption,
-        video_file_id: fileId,
-        photo_file_id: fileId
-      } as InlineQueryResult);
-      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
+        title: '不好意思喵',
+        description,
+        input_message_content: {
+          message_text: '不好意思喵, ' + description
+        }
+      }]);
+      return;
+    }
+    const res = new Array<InlineQueryResult>;
+    for (const s of stations.data) {
+      const ps = s.split('|');
+      const title = `${ps[2]} ${ps[1]}`;
+      res.push({
+        type: 'article',
+        id: `${crypto.randomUUID()}:weather:city:${ps[0]}`,
+        title,
+        description: ps.join(' '),
+        input_message_content: {
+          message_text: `正在查询 ${title} (${ps[0]})...`,
+        },
+        reply_markup: {
+          inline_keyboard: [[{
+            text: Math.random() > .3 ? '少女祈祷中...' : '少女折寿中...',
+            url: `tg://user?id=${ctx.botInfo.id}`
+          }]]
+        }
+      });
     }
     await ctx.answerInlineQuery(res);
   } catch (e) {
@@ -163,15 +190,18 @@ bot.on('callback_query', async (ctx) => {
     ctx.editMessageText('正在查询 ' + data[2] + '...');
     const w = await weather.fromStationId(data[2]);
     if (w.image) {
-      ctx.sendChatAction('upload_photo').catch(logger.warn);
-      await ctx['source' in w.image ? 'replyWithAnimation' : 'replyWithPhoto'](w.image, {
+      const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
+			await ctx.editMessageMedia({
+        type: 'source' in w.image ? 'animation' : 'photo',
+        media: 'document' in m ? m.document.file_id : m.photo[0].file_id,
         caption: w.caption,
+        parse_mode: 'HTML',
+      });
+    } else
+      await ctx.editMessageText(w.caption, {
         parse_mode: 'HTML'
       });
-    } else {
-      ctx.replyWithHTML(w.caption);
-    }
-    ctx.deleteMessage();
   }
 });
 
@@ -228,7 +258,7 @@ bot.on(message('text'), (ctx) => {
 // 错误处理
 bot.catch((err, ctx) => {
   logger.error(`[${ctx.updateType}] 错误:`, err);
-  ctx.reply('机器人遇到错误，请稍后再试');
+  ctx[ctx.inlineMessageId ? 'editMessageText' : 'reply']('机器人遇到错误，请稍后再试');
 });
 
 // 启动机器人
