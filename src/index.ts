@@ -117,7 +117,7 @@ bot.on('chosen_inline_result', async (ctx) => {
     const w = await weather.fromStationId(resid[2]);
     if (w.image) {
       const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image);
-      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
 			await ctx.editMessageMedia({
         type: 'source' in w.image ? 'animation' : 'photo',
         media: 'document' in m ? m.document.file_id : m.photo[0].file_id,
@@ -191,7 +191,7 @@ bot.on('callback_query', async (ctx) => {
     const w = await weather.fromStationId(data[2]);
     if (w.image) {
       const m = await ctx.telegram['source' in w.image ? 'sendDocument' : 'sendPhoto'](SINO_FILE_CENTER_CHAT_ID, w.image);
-      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e5);
+      setTimeout(() => ctx.telegram.deleteMessage(SINO_FILE_CENTER_CHAT_ID, m.message_id), 3e4);
 			await ctx.editMessageMedia({
         type: 'source' in w.image ? 'animation' : 'photo',
         media: 'document' in m ? m.document.file_id : m.photo[0].file_id,
