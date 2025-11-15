@@ -63,6 +63,7 @@ export async function fromContext(ctx: Context<Update.MessageUpdate<Message.Text
   if (!text[0]) {
     ctx.reply('你不給咱命令运行个啥嘛! 咱这命令就已经是 Shell 了喵...');
   } else if (text[0] === 'neofetch' 
+    || text[0] === 'fastfetch'
     || text[0] === 'fortune'
     || text[0] === 'uptime'
     || text[0] === 'dig'
@@ -71,14 +72,14 @@ export async function fromContext(ctx: Context<Update.MessageUpdate<Message.Text
     || text[0] === 'free'
     || text[0] === 'whois')
   {
-    const v = await execNoShellPlain(text[0], text.slice(1));
-    if (v.length > 32767) {
+    const v = await execNoShellPlain('timeout', ['-pk10', '30', ...text]);
+    if (v.length > 16383) {
       ctx.sendChatAction('upload_document');
       ctx.replyWithDocument({
         source: Buffer.from(v),
         filename: text.join('_') + '.txt'
       }, {
-        caption: `Command output too long (${v.length} >32767)!\nHere is your output text document.`
+        caption: `Command output too long (${v.length} > 16383)!\nHere is your output text document.`
       });
       logger.info('[shell]', text, 'output too long:', v.length);
     }
