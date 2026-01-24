@@ -70,9 +70,12 @@ export async function fromContext(ctx: Context<Update.MessageUpdate<Message.Text
     || text[0] === 'man'
     || text[0] === 'date'
     || text[0] === 'free'
-    || text[0] === 'whois')
-  {
-    const v = await execNoShellPlain('timeout', ['-pk10', '30', ...text]);
+    || text[0] === 'whois'
+    || text[0] === 'traceroute'
+    || text[0] === 'nping'
+    || text[0] === 'ping'
+  ) {
+    const v = await execNoShellPlain('timeout', ['-pk10', '-s2', '30', ...text]);
     if (v.length > 16383) {
       ctx.sendChatAction('upload_document');
       ctx.replyWithDocument({
