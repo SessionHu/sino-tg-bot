@@ -119,7 +119,6 @@ export async function fromContextInlineQuery(ctx: Context<Update.InlineQueryUpda
     }]);
   }
   const id = Math.floor(Date.now() / 1e3).toString(36) + ':shell:' + cmdline.map(v => Buffer.from(v).toString('base64')).join('-');
-  console.log(id);
   return ctx.answerInlineQuery([{
     type: 'article',
     id,
