@@ -20,7 +20,7 @@ delete process.env.BOT_TOKEN;
 
 if (!process.env.SINO_FILE_CENTER_CHAT_ID)
   logger.warn('未设置 SINO_FILE_CENTER_CHAT_ID 环境变量, 部分文件功能可能异常!');
-const SINO_FILE_CENTER_CHAT_ID = process.env.SINO_FILE_CENTER_CHAT_ID!;
+export const SINO_FILE_CENTER_CHAT_ID = process.env.SINO_FILE_CENTER_CHAT_ID!;
 delete process.env.SINO_FILE_CENTER_CHAT_ID;
 
 const dbhelper = new DBHelper('./db.jsonl');
@@ -85,6 +85,15 @@ bot.command('shell', async (ctx) => {
   }
 });
 
+bot.inlineQuery(/^(?:s|\$)(?:hell\s*|\s+)(.*)$/, async (ctx) => {
+  logger.info('[inline_query]', ctx.inlineQuery.query);
+  try {
+    await shell.fromContextInlineQuery(ctx);
+  } catch (e) {
+    logger.error(e);
+  }
+});
+
 bot.command('weather', async (ctx) => {
   dbhelper.write(JSON.stringify(ctx.message));
   logger.logMessage(ctx);
@@ -128,6 +137,10 @@ bot.on('chosen_inline_result', async (ctx) => {
       await ctx.editMessageText(w.caption, {
         parse_mode: 'HTML'
       });
+  }
+  // shell:xxx
+  else if (resid.length === 2 && resid[0] ==='shell') {
+    return shell.fromContextInlineChosen(ctx);
   }
 });
 

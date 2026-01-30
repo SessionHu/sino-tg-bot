@@ -4,6 +4,9 @@ export function escapeHtmlText(text: string): string {
   return text.replace(LESS_THAN_REGEX, '&lt;');
 }
 
+/**
+ * @deprecated
+ */
 export function toHtmlPreArray(text: string): string[] {
   return text.match(/^\n*$/) ?
     ['(empty)']
