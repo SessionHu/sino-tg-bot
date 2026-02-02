@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 
 import * as logger from './logger';
 import { escapeHtmlText } from './escape';
-import { SINO_FILE_CENTER_CHAT_ID } from '.';
+import { SINO_FILE_CENTER_CHAT_ID, userstatus } from '.';
 
 import type { Context } from 'telegraf';
 import type { Message, Update } from 'telegraf/types';
@@ -118,10 +118,12 @@ export async function fromContextInlineQuery(ctx: Context<Update.InlineQueryUpda
       }
     }]);
   }
-  const id = Math.floor(Date.now() / 1e3).toString(36) + ':shell:' + cmdline.map(v => Buffer.from(v).toString('base64')).join('-');
+  userstatus.set(ctx.inlineQuery.from.id, [
+    ['shell', cmdline.map(v => Buffer.from(v).toString('base64')).join('-')]
+  ]);
   return ctx.answerInlineQuery([{
     type: 'article',
-    id,
+    id: crypto.randomUUID() + ':shell',
     title: 'shell command',
     description: cmdline.join(' '),
     input_message_content: {
@@ -140,9 +142,10 @@ export async function fromContextInlineQuery(ctx: Context<Update.InlineQueryUpda
 export async function fromContextInlineChosen(ctx: Context<Update.ChosenInlineResultUpdate>) {
   const resid = ctx.chosenInlineResult.result_id.split(':');
   resid.shift(); // a useless timestamp
-  if (resid.length !== 2 || resid[0] !=='shell') return;
-  const cmdline = resid[1].split('-').map(v => Buffer.from(v, 'base64').toString('utf8'));
-  const v = await execNoShellTimeoutPlain(cmdline);
+  if (resid.length !== 1 || resid[0] !=='shell') return;
+  const cmdline = userstatus.get(ctx.from.id)?.get('shell')?.split('-').map(v => Buffer.from(v, 'base64').toString('utf8'));
+  if (!cmdline) return;
+  const v = ALLOWED_SHELL_CMDS.includes(cmdline[0]) ? await execNoShellTimeoutPlain(cmdline) : cmdline[0] + ': inaccessible or not found';
   if (v.length > OUTPUT_LIMIT_LENGTH) {
     const m = await ctx.telegram.sendDocument(SINO_FILE_CENTER_CHAT_ID, {
       source: Buffer.from(v),

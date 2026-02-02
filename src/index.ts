@@ -25,7 +25,7 @@ delete process.env.SINO_FILE_CENTER_CHAT_ID;
 
 const dbhelper = new DBHelper('./db.jsonl');
 
-const userstatus = new UserStatus;
+export const userstatus = new UserStatus;
 
 // 处理 /start 命令
 bot.start((ctx) => {
@@ -138,8 +138,8 @@ bot.on('chosen_inline_result', async (ctx) => {
         parse_mode: 'HTML'
       });
   }
-  // shell:xxx
-  else if (resid.length === 2 && resid[0] ==='shell') {
+  // shell
+  else if (resid.length === 1 && resid[0] ==='shell') {
     return shell.fromContextInlineChosen(ctx);
   }
 });
