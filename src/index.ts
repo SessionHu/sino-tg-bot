@@ -13,6 +13,8 @@ import * as inet from './inet';
 import * as weather from './weather';
 import * as stickers from './stickers';
 
+import { findPackageJSON } from 'node:module';
+
 dotenv.config();
 
 export const bot = new Telegraf(process.env.BOT_TOKEN!);
@@ -42,6 +44,7 @@ bot.help((ctx) => {
     '*✅可用命令:*\n' +
     '/start \\- 启动机器人\n' +
     '/help \\- 显示帮助\n' +
+    '/about \\- 显示关于信息\n' +
     '/echo \\[文本\\] \\- 回复相同文本\n' +
     '/weather \\<关键词\\> \\- 从 NMC 获取实时的天气及动态雷达图📡\n' +
     '/ip \\[域名 \\| IPv4\\] \\- 查询 IP 地址信息\n' +
@@ -50,6 +53,19 @@ bot.help((ctx) => {
     '*🚫特权命令:*\n' +
     '/shell \\- 无可奉告'
   ).catch(logger.error);
+});
+
+// 处理 /about 命令
+bot.command('about', async (ctx) => {
+  dbhelper.write(JSON.stringify(ctx.message));
+  logger.logMessage(ctx);
+  const pkgjson = require(findPackageJSON('file://' + module.path) || '{}');
+  let res = '';
+  for (const [k, v] of Object.entries(pkgjson)) {
+    if (k === 'scripts' || k === 'devDependencies' || k === 'dependencies' || k === 'main') continue;
+    res += `<strong>${k.replace(/^(.)/, c => c.toUpperCase())}</strong>: ${escape.escapeHtmlText(typeof v !== 'string' ? JSON.stringify(v) : v)}\n`
+  }
+  await ctx.replyWithHTML(res || 'Please star: https://github.com/SessionHu/sino-tg-bot');
 });
 
 // 回显消息
