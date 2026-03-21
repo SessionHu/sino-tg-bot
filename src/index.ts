@@ -102,7 +102,7 @@ bot.command('shell', async (ctx) => {
 });
 
 bot.inlineQuery(/^(?:s|\$)(?:hell\s*|\s+)(.*)$/, async (ctx) => {
-  logger.info('[inline_query]', ctx.inlineQuery.query);
+  logger.info('[inline_query]', ctx.inlineQuery.from.username, ctx.inlineQuery.query);
   try {
     await shell.fromContextInlineQuery(ctx);
   } catch (e) {
@@ -137,6 +137,7 @@ bot.command('weather', async (ctx) => {
 bot.on('chosen_inline_result', async (ctx) => {
   const resid = ctx.chosenInlineResult.result_id.split(':');
   resid.shift(); // a useless random uuid
+  logger.info('[inline_chosen]', ctx.chosenInlineResult.from.username, resid);
   // weather:city:xxx
   if (resid.length === 3 && resid[0] === 'weather' && resid[1] === 'city') {
     const w = await weather.fromStationId(resid[2]);
@@ -161,7 +162,7 @@ bot.on('chosen_inline_result', async (ctx) => {
 });
 
 bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
-  logger.info('[inline_query]', ctx.inlineQuery.query);
+  logger.info('[inline_query]', ctx.inlineQuery.from.username, ctx.inlineQuery.query);
   try {
     const stations = await weather.nmc.autocomplete(ctx.match[1] || '北京');
     if (!stations.data || stations.data.length === 0) {
@@ -202,6 +203,18 @@ bot.inlineQuery(/^w(?:eather\s*|\s+)(.*)$/, async (ctx) => {
     logger.error(e);
   }
 });
+
+bot.inlineQuery(/^p(?:eer)?$/, async (ctx) => {
+  logger.info('[inline_query]', ctx.inlineQuery.from.username, ctx.inlineQuery.query);
+  await ctx.answerInlineQuery([{
+    type: 'article',
+    id: crypto.randomUUID(),
+    title: '你好 peer 咱 SessNetwork 谢谢喵~',
+    input_message_content: {
+      message_text: '你好 peer 咱 SessNetwork 谢谢喵~\nhttps://dn42.xhustudio.eu.org/peering.html\nhttps://sess.dn42/peering.html',
+    }
+  }]);
+})
 
 bot.on('callback_query', async (ctx) => {
   if (!('data' in ctx.callbackQuery)) return;
