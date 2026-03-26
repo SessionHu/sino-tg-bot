@@ -80,11 +80,18 @@ const ALLOWED_SHELL_CMDS = [
 
 const OUTPUT_LIMIT_LENGTH = 4095;
 
+function isValidShellCommand(cmdline: string[]) {
+  return !(
+    !ALLOWED_SHELL_CMDS.includes(cmdline[0]) ||
+    (cmdline[0] === 'dig' && cmdline.find(v => v.startsWith('-f') || v.startsWith('-k')))
+  );
+}
+
 export async function fromContext(ctx: Context<Update.MessageUpdate<Message.TextMessage>>) {
   const text = ctx.text.split(/\s+/).slice(1);
   if (!text[0]) {
     ctx.reply('你不給咱命令运行个啥嘛! 咱这命令就已经是 Shell 了喵...');
-  } else if (ALLOWED_SHELL_CMDS.includes(text[0])) {
+  } else if (isValidShellCommand(text)) {
     const v = await execNoShellTimeoutPlain(text);
     if (v.length > OUTPUT_LIMIT_LENGTH) {
       ctx.sendChatAction('upload_document');
@@ -105,7 +112,7 @@ export async function fromContext(ctx: Context<Update.MessageUpdate<Message.Text
 
 export async function fromContextInlineQuery(ctx: Context<Update.InlineQueryUpdate> & {match: RegExpExecArray}) {
   const cmdline = ctx.match[1].split(/\s+/);
-  if (!ALLOWED_SHELL_CMDS.includes(cmdline[0])) {
+  if (!isValidShellCommand(cmdline)) {
     const description = cmdline[0] +': inaccessible or not found';
     return ctx.answerInlineQuery([{
       type: 'article',
