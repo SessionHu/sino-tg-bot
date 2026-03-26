@@ -152,7 +152,7 @@ export async function fromContextInlineChosen(ctx: Context<Update.ChosenInlineRe
   if (resid.length !== 1 || resid[0] !=='shell') return;
   const cmdline = userstatus.get(ctx.from.id)?.get('shell')?.split('-').map(v => Buffer.from(v, 'base64').toString('utf8'));
   if (!cmdline) return;
-  const v = ALLOWED_SHELL_CMDS.includes(cmdline[0]) ? await execNoShellTimeoutPlain(cmdline) : cmdline[0] + ': inaccessible or not found';
+  const v = isValidShellCommand(cmdline) ? await execNoShellTimeoutPlain(cmdline) : cmdline[0] + ': inaccessible or not found';
   if (v.length > OUTPUT_LIMIT_LENGTH) {
     const m = await ctx.telegram.sendDocument(SINO_FILE_CENTER_CHAT_ID, {
       source: Buffer.from(v),
