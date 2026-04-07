@@ -83,7 +83,7 @@ const OUTPUT_LIMIT_LENGTH = 4095;
 function isValidShellCommand(cmdline: string[]) {
   return !(
     !ALLOWED_SHELL_CMDS.includes(cmdline[0]) ||
-    (cmdline[0] === 'dig' && cmdline.find(v => v.startsWith('-f') || v.startsWith('-k')))
+    (cmdline[0] === 'dig' && cmdline.find(v => /^-.*(f|k)/.test(v)))
   );
 }
 
