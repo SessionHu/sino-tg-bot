@@ -69,7 +69,6 @@ const ALLOWED_SHELL_CMDS = [
   'fortune',
   'uptime',
   'dig',
-  'man',
   'date',
   'free',
   'whois',
@@ -83,7 +82,10 @@ const OUTPUT_LIMIT_LENGTH = 4095;
 function isValidShellCommand(cmdline: string[]) {
   return !(
     !ALLOWED_SHELL_CMDS.includes(cmdline[0]) ||
-    (cmdline[0] === 'dig' && cmdline.find(v => /^-.*(f|k)/.test(v)))
+    (cmdline[0] === 'dig' && cmdline.find(v => /^-.*(f|k)/.test(v))) ||
+    (cmdline[0] === 'fortune' && cmdline.length > 1) ||
+    (['neofetch', 'fastfetch'].includes(cmdline[0]) && cmdline.find(v => ['--config', '--gen-man'].includes(v))) ||
+    (cmdline[0] === 'date' && cmdline.find(v => /^-[^-]*f|^--file$/.test(v)))
   );
 }
 
