@@ -211,7 +211,7 @@ bot.inlineQuery(/^p(?:eer)?$/, async (ctx) => {
     id: crypto.randomUUID(),
     title: '你好 peer 咱 SessNetwork 谢谢喵~',
     input_message_content: {
-      message_text: '你好 peer 咱 SessNetwork 谢谢喵~\nhttps://dn42.xhustudio.eu.org/peering.html\nhttps://sess.dn42/peering.html',
+      message_text: '你好 peer 咱 SessNetwork 谢谢喵~\nhttps://sess.dn42.li/peering.html\nhttps://aka.dn42/p',
     }
   }]);
 })
