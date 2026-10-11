@@ -30,7 +30,8 @@ export async function execNoShell(command: string, args = new Array<string>, enc
       SHELL: process.argv[0],
       LD_PRELOAD: process.env.LD_PRELOAD,
       LANG: process.env.LANG
-    }
+    },
+    timeout: 3e4
   });
   if (stdin) cp.stdin.write(stdin), cp.stdin.end();
   cp.stdout.on('data', (chunk) => {
@@ -60,7 +61,7 @@ async function execNoShellPlain(command: string, args?: string[]) {
 }
 
 async function execNoShellTimeoutPlain(cmdline: string[]) {
-  return execNoShellPlain('timeout', ['-pk10', '-s2', '30', ...cmdline]);
+  return execNoShellPlain(cmdline[0], cmdline.slice(1));
 }
 
 const ALLOWED_SHELL_CMDS = [
